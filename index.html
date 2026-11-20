@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>歴史的通貨換算レートトリビアクイズ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-yellow-950 to-amber-900 min-h-screen text-white">
+<div class="max-w-2xl mx-auto p-4">
+  <div class="text-center mb-5">
+    <div class="text-4xl mb-1">💰</div>
+    <h1 class="text-2xl font-bold text-yellow-300">歴史的通貨換算レートトリビアクイズ</h1>
+    <p class="text-yellow-500 text-xs mt-1">古今東西の通貨価値と経済史の知識を試そう</p>
+  </div>
+
+  <!-- スコア・レベル -->
+  <div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="bg-yellow-900 bg-opacity-50 rounded-xl p-3 text-center">
+      <div class="text-xs text-yellow-400">スコア</div>
+      <div class="text-2xl font-bold text-yellow-300" id="stat-score">0</div>
+    </div>
+    <div class="bg-yellow-900 bg-opacity-50 rounded-xl p-3 text-center">
+      <div class="text-xs text-yellow-400">問題</div>
+      <div class="text-2xl font-bold text-white" id="stat-progress">0/40</div>
+    </div>
+    <div class="bg-yellow-900 bg-opacity-50 rounded-xl p-3 text-center">
+      <div class="text-xs text-yellow-400">レベル</div>
+      <div class="text-sm font-bold text-amber-300" id="stat-level">見習い</div>
+    </div>
+  </div>
+
+  <!-- クイズパネル -->
+  <div id="quiz-panel" class="bg-yellow-900 bg-opacity-40 rounded-2xl p-5 mb-5">
+    <div class="text-xs text-yellow-500 mb-3" id="quiz-era"></div>
+    <div class="text-lg font-semibold text-yellow-100 mb-5" id="quiz-question"></div>
+    <div class="grid grid-cols-2 gap-3 mb-4" id="quiz-choices"></div>
+    <div id="quiz-explanation" class="hidden bg-yellow-800 bg-opacity-50 border border-yellow-600 rounded-xl p-4 text-sm text-yellow-100 mb-3"></div>
+    <button id="btn-next" onclick="nextQuestion()" aria-label="次の問題"
+      class="hidden w-full bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-2 rounded-xl">次の問題 →</button>
+  </div>
+
+  <!-- レベル表 -->
+  <div class="bg-yellow-950 bg-opacity-50 rounded-xl p-4 mb-5">
+    <h2 class="text-sm font-semibold text-yellow-500 mb-2">レベル称号</h2>
+    <div class="grid grid-cols-2 gap-1 text-xs text-yellow-400" id="level-table"></div>
+  </div>
+
+  <!-- 履歴 -->
+  <div class="bg-yellow-950 bg-opacity-50 rounded-xl p-4">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-sm font-semibold text-yellow-600">過去の成績</h2>
+      <button onclick="clearHistory()" aria-label="履歴消去" class="text-xs text-yellow-800 hover:text-yellow-600">消去</button>
+    </div>
+    <div id="history-list" class="space-y-1 text-xs"></div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  { era: '江戸時代 日本', q: '江戸時代の1両（金）は現代の円に換算するとおよそいくら？', choices: ['約3万円', '約5万円', '約10万円', '約30万円'], answer: 2, exp: '江戸時代の1両は米価換算で現代の約10〜15万円相当とされます。ただし計算方法により3〜30万円とする説もあります。' },
+  { era: '江戸時代 日本', q: '江戸時代の「銭（文）」は何文が1両？', choices: ['1文=1/100両', '1両=4000文', '1両=1000文', '1両=100文'], answer: 1, exp: '江戸時代の貨幣制度は三貨制度。1両=4分=16朱=4000文（銭）が原則でしたが、実際の相場は変動しました。' },
+  { era: '古代ローマ', q: '古代ローマの1デナリウスは現代の価値でおよそいくら？', choices: ['約200円', '約2000円', '約2万円', '約20万円'], answer: 1, exp: 'ローマ帝国期の1デナリウスは兵士の日当1日分（約5000セステルティウスの年収）とされ、現代の約2000〜3000円相当という試算があります。' },
+  { era: '古代ローマ', q: 'ローマ帝国の兵士（レギオナリー）の年収は何デナリウス？', choices: ['100デナリウス', '225デナリウス', '1000デナリウス', '5000デナリウス'], answer: 1, exp: '1世紀頃のローマ兵士の年俸は225デナリウス。後にドミティアヌス帝が300デナリウスに引き上げました。' },
+  { era: '中世ヨーロッパ', q: '中世ヨーロッパで「1フローリン（金貨）」は現代の価値でおよそ？', choices: ['約1000円', '約1万円', '約10万円', '約100万円'], answer: 1, exp: 'フィレンツェのフローリン金貨（13〜15世紀）は約3.5gの金を含み、現代の金価格換算で約3〜4万円。購買力は約10万円相当とも言われます。' },
+  { era: '中世ヨーロッパ', q: 'イギリスの1ポンド・スターリング（1900年頃）は現代の価値でおよそ？', choices: ['約2000円', '約2万円', '約10万円', '約100万円'], answer: 2, exp: '1900年代初期の1ポンドは現代の約10〜15万円相当とされます。当時の英国は世界最強の経済大国でした。' },
+  { era: '近代 日本', q: '明治時代の1円（金本位制時代）は現代の価値でおよそ？', choices: ['約200円', '約2000円', '約1万円', '約10万円'], answer: 2, exp: '明治・大正時代の1円は現代の約2000〜5000円相当。金本位制時代、1円は純金0.75gと定められていました。' },
+  { era: '近代 日本', q: '昭和初期（1930年代）の大卒初任給は約いくら？', choices: ['5円', '50円', '500円', '5000円'], answer: 1, exp: '1930年代の大卒初任給は約50〜70円。現代換算で約15〜20万円相当。当時の映画館入場料は約20銭でした。' },
+  { era: '古代中国', q: '唐代（7〜10世紀）中国の1貫（銭1000枚）は現代の価値でおよそ？', choices: ['約1000円', '約1万円', '約10万円', '約100万円'], answer: 1, exp: '唐代の1貫（1000文銭）は絹1疋（4丈）相当とされ、現代換算で約1〜2万円程度と試算されます。' },
+  { era: '古代中国', q: '江南時代の「金錠（元宝）」1両は現代の価値でおよそ？', choices: ['約1万円', '約10万円', '約50万円', '約1000万円'], answer: 1, exp: '中国の金錠（馬蹄銀・元宝）1両（約37g）は現代の金価格換算で約30万円。歴史的購買力では10〜50万円相当とされます。' },
+  { era: '近代 アメリカ', q: '1800年代アメリカの1ドルは現代の価値でおよそ？', choices: ['約200円（現在と同等）', '約1000円', '約3000円', '約1万円'], answer: 2, exp: '1800年代の1ドルは現代の約20〜30ドル相当（約3000〜4500円）。物価は大幅に異なり、馬1頭が約100ドルでした。' },
+  { era: '近代 アメリカ', q: '1930年代（大恐慌時）の最低時給はいくら？', choices: ['5セント', '25セント', '1ドル', '5ドル'], answer: 1, exp: '1938年のアメリカ公正労働基準法施行時の最低時給は25セント。現代の約5ドル相当とされます。' },
+  { era: '江戸時代 日本', q: '江戸時代、蕎麦1杯の値段は約いくら？', choices: ['1文', '10文', '16文', '100文'], answer: 2, exp: '江戸時代中期の蕎麦1杯は約16文（約400円相当）。「二八蕎麦」の名はこの16文（2×8=16）に由来するとも言われます。' },
+  { era: '近代 日本', q: '終戦直後（1946年）の闇市でのお米1升はいくら？', choices: ['1円', '15円', '300円', '3000円'], answer: 2, exp: '1946年の闇市価格でのお米1升は約300〜500円。公定価格の10倍以上で、インフレが急激に進行していました。' },
+  { era: '古代ギリシャ', q: '古代ギリシャの1ドラクマは現代の価値でおよそ？', choices: ['約200円', '約2000円', '約2万円', '約20万円'], answer: 1, exp: '紀元前5世紀のアテネで1ドラクマは熟練職人の日当。現代換算で約2000〜5000円相当とされます。' },
+  { era: '古代ギリシャ', q: 'パルテノン神殿の建設費用は現代の価値でおよそ？', choices: ['約1億円', '約100億円', '約1000億円', '約1兆円'], answer: 2, exp: 'パルテノン神殿（前447〜432年）の建設費は約469タラントン。現代換算で約500〜1000億円と推定されます。' },
+  { era: '中世 日本', q: '戦国時代の刀1本の価格は現代の価値でおよそ？', choices: ['約1万円', '約10万円', '約100万円', '約1000万円'], answer: 2, exp: '戦国時代の実用刀は米2〜3石相当（約20〜30万円）。名刀は大名の禄高に匹敵する価格がつくこともありました。' },
+  { era: 'ビザンツ帝国', q: 'ビザンツ帝国の金貨「ノミスマ（ソリドゥス）」は現代の価値でおよそ？', choices: ['約3000円', '約3万円', '約30万円', '約300万円'], answer: 1, exp: 'ビザンツ金貨ノミスマは約4.5gの金を含み、現代の金価格換算で約3〜4万円。当時の購買力は20〜30万円相当とも言われます。' },
+  { era: '近代 日本', q: '1964年東京五輪当時の大卒初任給はいくら？', choices: ['1500円', '15000円', '150000円', '1500000円'], answer: 1, exp: '1964年（昭和39年）の大卒初任給は約15,000〜20,000円。現代の約6〜7倍の価値があったとされます。' },
+  { era: '近代 日本', q: 'バブル経済ピーク（1989年）の東京の地価は現在の何倍？', choices: ['同じくらい', '2〜3倍', '5〜10倍', '100倍以上'], answer: 2, exp: 'バブルピーク時の東京商業地価は現在の約5〜10倍以上。「日本の土地でアメリカ全土が買える」とも言われた時代です。' },
+  { era: '江戸時代 日本', q: '江戸時代の「大工の手間賃」1日はいくら？', choices: ['1〜2文', '100文', '1000文', '1両'], answer: 1, exp: '江戸時代の大工の日当は約300〜500文（現代の約3000〜5000円相当）。熟練大工は1日600文以上稼ぐこともありました。' },
+  { era: '近代 アメリカ', q: 'フォードT型自動車（1909年）の価格は？', choices: ['100ドル', '850ドル', '5000ドル', '50000ドル'], answer: 1, exp: '1909年のフォードT型は850ドル。大量生産で1927年には290ドルまで下がり、一般労働者も購入可能になりました。現代換算で約25〜30万円相当。' },
+  { era: '古代エジプト', q: '古代エジプトの職人の月給は何デベン（銅）？', choices: ['5デベン', '50デベン', '500デベン', '5000デベン'], answer: 1, exp: '新王国時代の熟練職人は月約50デベン（約450g銅相当）。穀物・魚・木材等の現物支給と合わせて生活していました。' },
+  { era: '近代 日本', q: '1973年（オイルショック前）のガソリン1Lの値段はいくら？', choices: ['10円', '50円', '100円', '500円'], answer: 1, exp: '1973年オイルショック前のガソリン価格は約50〜60円/L。第一次オイルショックで1年で約2倍に高騰しました。' },
+  { era: 'モンゴル帝国', q: 'モンゴル帝国時代の紙幣（交鈔）1枚は何文の価値？', choices: ['10文', '100文', '1000文', '10000文'], answer: 2, exp: '元朝の交鈔は1000文銅銭相当。紙幣として広く流通しましたが、後期には過度発行でインフレを招きました。' },
+  { era: '近代 ドイツ', q: '1923年ドイツのハイパーインフレ最盛期、パン1個の値段は？', choices: ['1マルク', '1万マルク', '1億マルク', '1000億マルク'], answer: 3, exp: '1923年11月のドイツでパン1個は約1000億マルク。1月には163マルクだったパンが年末までに天文学的価格になりました。' },
+  { era: '近代 日本', q: '1950年代の映画館入場料はいくら？', choices: ['10円', '30円', '300円', '3000円'], answer: 1, exp: '1950年代の映画入場料は約30〜50円（現代の約300〜500円相当）。映画は大衆娯楽の王様で、年間10億人以上が観客数でした。' },
+  { era: '古代メソポタミア', q: 'バビロニア時代の1シェケル（銀）は現代の価値でおよそ？', choices: ['約200円', '約2000円', '約2万円', '約20万円'], answer: 1, exp: 'シェケル（約8〜11g銀）はハンムラビ法典にも登場。現代の銀価格換算で約2000〜3000円。当時の購買力は約1〜2万円相当とされます。' },
+  { era: '近代 中国', q: '1930年代上海の映画俳優「阮玲玉」の月収はいくら？', choices: ['5元', '500元', '5000元', '50000元'], answer: 1, exp: '1930年代の上海映画スター阮玲玉の月収は約500元。当時の工場労働者の月収が約10〜20元であることを考えると、破格の収入でした。' },
+  { era: '近代 日本', q: '高度成長期（1965年）の新幹線（東京〜大阪）の特急料金はいくら？', choices: ['100円', '1000円', '3600円', '36000円'], answer: 2, exp: '1965年の東京〜大阪新幹線特急料金は約1500円（現代の約1万円相当）。当時の大卒初任給の約10分の1でした。' },
+  { era: '近代 アメリカ', q: '1950年代アメリカの平均的な住宅価格は？', choices: ['5000ドル', '30000ドル', '300000ドル', '3000000ドル'], answer: 1, exp: '1950年代のアメリカの中位住宅価格は約30,000ドル（現代換算で約35〜40万ドル・約5000万円相当）。核家族と郊外化の時代でした。' },
+  { era: '江戸時代 日本', q: '江戸時代の「棒手振り（行商）」の1日の収入はいくら？', choices: ['1〜2文', '30〜50文', '300〜500文', '3000〜5000文'], answer: 1, exp: '江戸時代の行商人の1日の収益は約30〜80文（現代の約300〜800円相当）。薄利多売で生計を立てていました。' },
+  { era: '幕末 日本', q: '幕末（1853年）の「黒船来航」時、アメリカが要求した米1俵の値段はいくら？', choices: ['1ドル', '1両', '1分銀', '1朱銀'], answer: 1, exp: '幕末の日米和親条約（1854年）交渉では、物価の違いが問題になりました。当時1ドル=約1分銀とされましたが、金銀比率の違いで大量の金が流出しました。' },
+  { era: '近代 日本', q: '戦後の「金の卵」と呼ばれた集団就職者（1960年代）の初任給は？', choices: ['500円', '5000円', '50000円', '500000円'], answer: 1, exp: '1960年代初めの中学卒業就職者（金の卵）の初任給は約5000〜8000円（現代の約3〜5万円相当）。農村から都市への大規模な人口移動が起きました。' },
+  { era: '近代 フランス', q: 'フランス革命後のアッシニャ（紙幣）はなぜ価値を失ったか？', choices: ['偽造が多すぎた', '発行量が多すぎてインフレになった', '金との兌換を停止したから', '全ての選択肢が正解'], answer: 3, exp: 'アッシニャ（1789〜1796年）は発行過多によるハイパーインフレ、大量の偽造、及び金兌換停止が重なって価値が暴落しました。革命期フランスの財政危機を象徴します。' },
+  { era: '近代 日本', q: '明治政府が「円」を導入した際（1871年新貨条例）、1円は何グラムの金？', choices: ['0.075g', '0.75g', '7.5g', '75g'], answer: 1, exp: '1871年の新貨条例で1円=純金1.5グラムと定められました（後に金本位制で0.75gに改定）。これが日本の近代貨幣制度の始まりです。' },
+  { era: '古代ローマ', q: 'ポンペイ遺跡から発見された売春宿の価格はいくら？', choices: ['1〜2アス', '10〜20アス', '100〜200アス', '1000アス'], answer: 0, exp: 'ポンペイの落書きから1〜2アス（現代換算で数百円相当）という価格が確認されています。当時のパン1個が約2アスでした。' },
+  { era: '近代 日本', q: '1990年バブルピーク時の銀座の地価は1坪いくら？', choices: ['100万円', '1000万円', '1億円', '5億円'], answer: 2, exp: 'バブルピーク時（1990年）の銀座最高地価は1坪（3.3㎡）約1億円以上。現在は2000〜3000万円台で推移しています。' },
+  { era: '近代 アメリカ', q: 'アポロ11号月面着陸（1969年）のプロジェクト総費用は現代の価値でいくら？', choices: ['約200億円', '約2000億円', '約2兆円', '約20兆円'], answer: 2, exp: 'アポロ計画総費用は約250億ドル（1960〜70年代）。現代価値に換算すると約2〜3兆円相当とされます。当時のGDPの約2.5%を費やしました。' },
+  { era: '近代 日本', q: '1964年東京五輪の国立競技場建設費は現代の価値でいくら？', choices: ['約3億円', '約30億円', '約300億円', '約3000億円'], answer: 1, exp: '1964年の国立競技場（旧）の建設費は約35億円。現代価値換算で約300〜500億円相当とされます（新国立競技場は約1569億円）。' },
+  { era: '近代 日本', q: '江戸末期〜明治初期の「お雇い外国人」の月給は日本人の何倍？', choices: ['同じくらい', '2〜3倍', '10〜50倍', '100倍以上'], answer: 2, exp: '明治政府が招聘した西洋人技師・教師のお雇い外国人の月給は300〜1000円。日本人官吏の10〜50倍の破格の待遇でした。' },
+];
+
+const LEVELS = [
+  { min: 0,  label: '見習い経済学者' },
+  { min: 5,  label: '銅貨コレクター' },
+  { min: 10, label: '銀貨商人' },
+  { min: 15, label: '金貨両替商' },
+  { min: 20, label: '歴史経済研究家' },
+  { min: 25, label: '通貨史アナリスト' },
+  { min: 30, label: '歴史経済博士' },
+  { min: 35, label: '時代を超える賢者' },
+  { min: 38, label: '歴史経済の神' },
+];
+
+let state = { score: 0, currentIdx: 0, shuffled: [], history: [] };
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('currency-quiz');
+    if (s) {
+      const d = JSON.parse(s);
+      state.score = d.score || 0;
+      state.currentIdx = d.currentIdx || 0;
+      state.shuffled = d.shuffled || [];
+      state.history = d.history || [];
+    }
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem('currency-quiz', JSON.stringify(state));
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getLevel(score) {
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (score >= LEVELS[i].min) return LEVELS[i].label;
+  }
+  return LEVELS[0].label;
+}
+
+function initQuiz() {
+  if (state.shuffled.length === 0) {
+    state.shuffled = shuffle(QUESTIONS.map((_, i) => i));
+  }
+  showQuestion();
+  renderLevelTable();
+  renderHistory();
+  updateStats();
+}
+
+function showQuestion() {
+  if (state.currentIdx >= QUESTIONS.length) {
+    // All done, restart
+    state.history.unshift({ date: new Date().toLocaleDateString('ja-JP'), score: state.score, total: QUESTIONS.length });
+    if (state.history.length > 10) state.history.pop();
+    state.score = 0;
+    state.currentIdx = 0;
+    state.shuffled = shuffle(QUESTIONS.map((_, i) => i));
+    saveState();
+    renderHistory();
+  }
+  const qIdx = state.shuffled[state.currentIdx];
+  const q = QUESTIONS[qIdx];
+  document.getElementById('quiz-era').textContent = q.era;
+  document.getElementById('quiz-question').textContent = q.q;
+  document.getElementById('quiz-explanation').classList.add('hidden');
+  document.getElementById('btn-next').classList.add('hidden');
+
+  const choicesEl = document.getElementById('quiz-choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'bg-yellow-800 hover:bg-yellow-700 border border-yellow-600 rounded-xl p-3 text-sm text-left transition';
+    btn.setAttribute('aria-label', `選択肢 ${i + 1}: ${c}`);
+    btn.textContent = c;
+    btn.onclick = () => makeChoice(i === q.answer, q, btn, i);
+    choicesEl.appendChild(btn);
+  });
+  updateStats();
+}
+
+function makeChoice(correct, q, clickedBtn, chosenIdx) {
+  const choicesEl = document.getElementById('quiz-choices');
+  Array.from(choicesEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) {
+      btn.className = 'bg-green-700 border-2 border-green-400 rounded-xl p-3 text-sm text-left';
+    } else if (i === chosenIdx && !correct) {
+      btn.className = 'bg-red-700 border-2 border-red-400 rounded-xl p-3 text-sm text-left';
+    }
+  });
+  if (correct) state.score++;
+  document.getElementById('quiz-explanation').classList.remove('hidden');
+  document.getElementById('quiz-explanation').textContent =
+    (correct ? '✅ 正解！' : '❌ 不正解 — 正解: ' + q.choices[q.answer]) + '\n\n' + q.exp;
+  document.getElementById('btn-next').classList.remove('hidden');
+  updateStats();
+  saveState();
+}
+
+function nextQuestion() {
+  state.currentIdx++;
+  saveState();
+  showQuestion();
+}
+
+function updateStats() {
+  document.getElementById('stat-score').textContent = state.score;
+  document.getElementById('stat-progress').textContent = state.currentIdx + '/' + QUESTIONS.length;
+  document.getElementById('stat-level').textContent = getLevel(state.score);
+}
+
+function renderLevelTable() {
+  const c = document.getElementById('level-table');
+  c.innerHTML = '';
+  LEVELS.forEach(l => {
+    const left = document.createElement('span');
+    left.textContent = l.min + '点〜';
+    left.className = 'text-yellow-600';
+    const right = document.createElement('span');
+    right.textContent = l.label;
+    right.className = state.score >= l.min ? 'text-yellow-300 font-semibold' : 'text-yellow-700';
+    c.appendChild(left); c.appendChild(right);
+  });
+}
+
+function renderHistory() {
+  const c = document.getElementById('history-list');
+  c.innerHTML = '';
+  if (state.history.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'text-yellow-800';
+    p.textContent = '成績なし';
+    c.appendChild(p);
+    return;
+  }
+  state.history.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'flex justify-between text-yellow-500 bg-yellow-900 bg-opacity-20 rounded px-3 py-1';
+    const left = document.createElement('span');
+    left.textContent = h.date;
+    const right = document.createElement('span');
+    right.textContent = `${h.score}/${h.total}点`;
+    row.appendChild(left); row.appendChild(right);
+    c.appendChild(row);
+  });
+}
+
+function clearHistory() {
+  if (!confirm('成績を消去しますか？')) return;
+  state.history = [];
+  saveState();
+  renderHistory();
+}
+
+loadState();
+initQuiz();
+</script>
+</body>
+</html>
